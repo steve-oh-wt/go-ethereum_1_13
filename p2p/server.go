@@ -610,9 +610,6 @@ func (srv *Server) setupDialScheduler() {
 	}
 	srv.dialsched = newDialScheduler(config, srv.discmix, srv.SetupConn)
 	for _, n := range srv.StaticNodes {
-		// ##steve test
-		fmt.Println("staticnode", n)
-		//end
 		srv.dialsched.addStatic(n)
 	}
 }

@@ -140,7 +140,7 @@ func New(conf *Config) (*Node, error) {
 	if node.server.Config.StaticNodes == nil {
 		node.server.Config.StaticNodes = node.config.StaticNodes()
 	}
-	// end
+	// ##end
 	if node.server.Config.NodeDatabase == "" {
 		node.server.Config.NodeDatabase = node.config.NodeDB()
 	}

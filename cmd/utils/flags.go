@@ -1591,12 +1591,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Set configurations from CLI flags
 	setEtherbase(ctx, cfg)
 
-	// ##steve test
-	if cfg.Miner.Etherbase == (common.Address{}) {
-		cfg.Miner.Etherbase = crypto.PubkeyToAddress(stack.Config().NodeKey().PublicKey)
-	}
-	//end
-
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setMiner(ctx, &cfg.Miner)
