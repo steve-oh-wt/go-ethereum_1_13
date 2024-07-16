@@ -30,7 +30,6 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/clique"
-	istanbulBackend "github.com/ethereum/go-ethereum/consensus/istanbul/backend"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -184,17 +183,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// With this change, support is added so that the "eth" subprotocol remains and optionally a consensus subprotocol
 	// can be added allowing the node to communicate over "eth" and an optional consensus subprotocol, e.g. "eth" and "istanbul/100"
 	if chainConfig.QBFT != nil {
-
-		var qbft *istanbulBackend.Backend
-		if b, ok := engine.(*istanbulBackend.Backend); ok {
-			qbft = b
-		} else if b, ok := engine.(*beacon.Beacon); ok {
-			if b, ok := b.InnerEngine().(*istanbulBackend.Backend); ok {
-				qbft = b
-			}
-		}
-
-		quorumProtocol := qbft.Protocol()
+		quorumProtocol := engine.Protocol()
 		// set the quorum specific consensus devp2p subprotocol, eth subprotocol remains set to protocolName as in upstream geth.
 		quorumConsensusProtocolName = quorumProtocol.Name
 		quorumConsensusProtocolVersions = quorumProtocol.Versions

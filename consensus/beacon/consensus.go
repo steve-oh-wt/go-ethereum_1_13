@@ -72,8 +72,8 @@ func New(ethone consensus.Engine) *Beacon {
 
 // ##quorum istanbul
 // Protocol implements consensus.Engine.Protocol
-func (sb *Beacon) Protocol() consensus.Protocol {
-	return consensus.EthahProtocol
+func (beacon *Beacon) Protocol() consensus.Protocol {
+	return beacon.ethone.Protocol()
 }
 
 // ##end

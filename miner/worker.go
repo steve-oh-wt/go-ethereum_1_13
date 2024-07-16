@@ -380,18 +380,17 @@ func (w *worker) start() {
 	w.running.Store(true)
 
 	// ##quorum istanbul
-	var qbft *istanbulBackend.Backend
-	if b, ok := w.engine.(*istanbulBackend.Backend); ok {
-		qbft = b
-	} else if b, ok := w.engine.(*beacon.Beacon); ok {
-		if b, ok := b.InnerEngine().(*istanbulBackend.Backend); ok {
-			qbft = b
+	var (
+		qbft *istanbulBackend.Backend
+		ok   bool
+	)
+	if qbft, ok = w.engine.(*istanbulBackend.Backend); !ok {
+		if beacon, ok := w.engine.(*beacon.Beacon); ok {
+			qbft, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
 		}
 	}
 	if qbft != nil {
 		qbft.Start(w.chain, w.chain.CurrentFullBlock, rawdb.HasBadBlock)
-	} else {
-		log.Warn("no start of engine", "engine", w.engine)
 	}
 
 	// ##END
@@ -401,12 +400,13 @@ func (w *worker) start() {
 // stop sets the running status as 0.
 func (w *worker) stop() {
 	// ##quorum istanbul
-	var qbft *istanbulBackend.Backend
-	if b, ok := w.engine.(*istanbulBackend.Backend); ok {
-		qbft = b
-	} else if b, ok := w.engine.(*beacon.Beacon); ok {
-		if b, ok := b.InnerEngine().(*istanbulBackend.Backend); ok {
-			qbft = b
+	var (
+		qbft *istanbulBackend.Backend
+		ok   bool
+	)
+	if qbft, ok = w.engine.(*istanbulBackend.Backend); !ok {
+		if beacon, ok := w.engine.(*beacon.Beacon); ok {
+			qbft, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
 		}
 	}
 	if qbft != nil {
