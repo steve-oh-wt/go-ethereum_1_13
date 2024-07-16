@@ -104,8 +104,23 @@ func TestSendTransaction(t *testing.T) {
 	}
 	fmt.Println("chainID", chainID)
 
+	// from
+	fromPK := func(t *testing.T) *ecdsa.PrivateKey {
+		keyjson, err := os.ReadFile("./etherbase1.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		key, err := keystore.DecryptKey(keyjson, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return key.PrivateKey
+	}(t)
+
 	// nonce
-	nonce, err := ec.NonceAt(ctx, common.HexToAddress("0xb9032595ec0465f43de9cf68c1e230888a5d16b6"), nil)
+	from := crypto.PubkeyToAddress(fromPK.PublicKey)
+	nonce, err := ec.NonceAt(ctx, from, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,21 +145,7 @@ func TestSendTransaction(t *testing.T) {
 	gasLimit := uint64(21000)
 	fmt.Println("header.BaseFee", header.BaseFee, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit)
 
-	// from, to
-	decryptKey := func(path string) *ecdsa.PrivateKey {
-		keyjson, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		key, err := keystore.DecryptKey(keyjson, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		return key.PrivateKey
-	}
-	keyJsonPath := "../alloc.json"
-	from := crypto.PubkeyToAddress(decryptKey(keyJsonPath).PublicKey)
+	// to
 	to := common.HexToAddress("0x5883154ea4df20d4fe2a1221e62ca20a15e33fcf")
 
 	balanceFn := func(addr common.Address) {
@@ -166,7 +167,7 @@ func TestSendTransaction(t *testing.T) {
 		Gas:       gasLimit,
 		To:        &to,
 		Value:     big.NewInt(0.1e18), // 1 ether
-	}), types.NewLondonSigner(chainID), decryptKey(keyJsonPath))
+	}), types.NewLondonSigner(chainID), fromPK)
 	if err != nil {
 		t.Fatal(err)
 	}
