@@ -45,6 +45,13 @@ func (bc *BlockChain) CurrentBlock() *types.Header {
 	return bc.currentBlock.Load()
 }
 
+// ##quorum istanbul
+func (bc *BlockChain) CurrentFullBlock() *types.Block {
+	return bc.GetBlockByHash(bc.CurrentBlock().Hash())
+}
+
+// ##END
+
 // CurrentSnapBlock retrieves the current snap-sync head block of the canonical
 // chain. The block is retrieved from the blockchain's internal cache.
 func (bc *BlockChain) CurrentSnapBlock() *types.Header {

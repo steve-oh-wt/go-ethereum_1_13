@@ -26,9 +26,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/consensus/beacon"
+	istanbulBackend "github.com/ethereum/go-ethereum/consensus/istanbul/backend"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -375,11 +378,42 @@ func (w *worker) pendingBlockAndReceipts() (*types.Block, types.Receipts) {
 // start sets the running status as 1 and triggers new work submitting.
 func (w *worker) start() {
 	w.running.Store(true)
+
+	// ##quorum istanbul
+	var qbft *istanbulBackend.Backend
+	if b, ok := w.engine.(*istanbulBackend.Backend); ok {
+		qbft = b
+	} else if b, ok := w.engine.(*beacon.Beacon); ok {
+		if b, ok := b.InnerEngine().(*istanbulBackend.Backend); ok {
+			qbft = b
+		}
+	}
+	if qbft != nil {
+		qbft.Start(w.chain, w.chain.CurrentFullBlock, rawdb.HasBadBlock)
+	} else {
+		log.Warn("no start of engine", "engine", w.engine)
+	}
+
+	// ##END
 	w.startCh <- struct{}{}
 }
 
 // stop sets the running status as 0.
 func (w *worker) stop() {
+	// ##quorum istanbul
+	var qbft *istanbulBackend.Backend
+	if b, ok := w.engine.(*istanbulBackend.Backend); ok {
+		qbft = b
+	} else if b, ok := w.engine.(*beacon.Beacon); ok {
+		if b, ok := b.InnerEngine().(*istanbulBackend.Backend); ok {
+			qbft = b
+		}
+	}
+	if qbft != nil {
+		qbft.Stop()
+	}
+	// ##END
+
 	w.running.Store(false)
 }
 

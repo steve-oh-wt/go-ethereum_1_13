@@ -18,7 +18,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
@@ -279,7 +278,7 @@ func init() {
 
 func main() {
 	node := int64(1)
-	root := filepath.Join(os.Getenv("HOME"), "testnet-clique")
+	root := filepath.Join(os.Getenv("HOME"), "testnet-qbft")
 	fmt.Println(root)
 
 	const (
@@ -296,25 +295,25 @@ func main() {
 			},
 			// RUN
 			func() []string {
-				// etherbase
-				etherbase := func() string {
-					fd, err := os.Open(fmt.Sprintf("%s/node-%d/data/keystore/etherbase.json", root, node))
-					if err != nil {
-						panic(err)
-					}
-					defer fd.Close()
-					var key map[string]interface{}
-					if err = json.NewDecoder(fd).Decode(&key); err != nil {
-						panic(err)
-					}
-					return key["address"].(string)
-				}()
+				// // etherbase
+				// etherbase := func() string {
+				// 	fd, err := os.Open(fmt.Sprintf("%s/node-%d/data/keystore/etherbase.json", root, node))
+				// 	if err != nil {
+				// 		panic(err)
+				// 	}
+				// 	defer fd.Close()
+				// 	var key map[string]interface{}
+				// 	if err = json.NewDecoder(fd).Decode(&key); err != nil {
+				// 		panic(err)
+				// 	}
+				// 	return key["address"].(string)
+				// }()
 
 				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "--verbosity=5", "--syncmode=full",
-					fmt.Sprintf("--port=3030%d", node), "--nat=none", "--nodiscover", "--mine", fmt.Sprintf("--miner.etherbase=%s", etherbase),
+					fmt.Sprintf("--port=3030%d", node), "--nat=none", "--nodiscover", "--mine", /*fmt.Sprintf("--miner.etherbase=%s", etherbase),*/
 					"--http", "--http.addr=127.0.0.1", fmt.Sprintf("--http.port=2200%d", node), "--http.corsdomain=*", "--http.vhosts=*",
-					"--http.api=admin,eth,debug,miner,net,txpool,personal,web3", fmt.Sprintf("--authrpc.port=855%d", node),
-					fmt.Sprintf("--unlock=%s", etherbase), fmt.Sprintf("--password=%s", filepath.Join(root, "password.txt")), "console"}
+					"--http.api=admin,eth,debug,miner,net,txpool,personal,web3,istanbul,engine", fmt.Sprintf("--authrpc.port=855%d", node),
+					/*fmt.Sprintf("--unlock=%s", etherbase), fmt.Sprintf("--password=%s", filepath.Join(root, "password.txt")), */ "console"}
 			},
 			// COMMAND
 			func() []string {

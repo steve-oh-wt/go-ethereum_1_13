@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/clique"
+	istanbulBackend "github.com/ethereum/go-ethereum/consensus/istanbul/backend"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -39,6 +40,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/txpool/legacypool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/downloader"
 	"github.com/ethereum/go-ethereum/eth/ethconfig"
 	"github.com/ethereum/go-ethereum/eth/gasprice"
@@ -148,7 +150,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine, err := ethconfig.CreateConsensusEngine(chainConfig, chainDb)
+	engine, err := ethconfig.CreateConsensusEngine(chainConfig, &config.Istanbul, stack, chainDb)
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +174,37 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		p2pServer:         stack.Server(),
 		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
 	}
+	// ##quorum istanbul
+	// Quorum: Set protocol Name/Version
+	// keep `var protocolName = "eth"` as is, and only update the quorum consensus specific protocol
+	// This is used to enable the eth service to return multiple devp2p subprotocols.
+	// Previously, for istanbul/64 istnbul/99 and clique (v2.6) `protocolName` would be overridden and
+	// set to the consensus subprotocol name instead of "eth", meaning the node would no longer
+	// communicate over the "eth" subprotocol, e.g. "eth" or "istanbul/99" but not eth" and "istanbul/99".
+	// With this change, support is added so that the "eth" subprotocol remains and optionally a consensus subprotocol
+	// can be added allowing the node to communicate over "eth" and an optional consensus subprotocol, e.g. "eth" and "istanbul/100"
+	if chainConfig.QBFT != nil {
+
+		var qbft *istanbulBackend.Backend
+		if b, ok := engine.(*istanbulBackend.Backend); ok {
+			qbft = b
+		} else if b, ok := engine.(*beacon.Beacon); ok {
+			if b, ok := b.InnerEngine().(*istanbulBackend.Backend); ok {
+				qbft = b
+			}
+		}
+
+		quorumProtocol := qbft.Protocol()
+		// set the quorum specific consensus devp2p subprotocol, eth subprotocol remains set to protocolName as in upstream geth.
+		quorumConsensusProtocolName = quorumProtocol.Name
+		quorumConsensusProtocolVersions = quorumProtocol.Versions
+		quorumConsensusProtocolLengths = quorumProtocol.Lengths
+
+		// force to set the istanbul etherbase to node key address
+		eth.etherbase = crypto.PubkeyToAddress(stack.Config().NodeKey().PublicKey)
+	}
+	// ##END
+
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
 	var dbVer = "<nil>"
 	if bcVersion != nil {
@@ -245,12 +278,18 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		BloomCache:     uint64(cacheLimit),
 		EventMux:       eth.eventMux,
 		RequiredBlocks: config.RequiredBlocks,
+		Engine:         eth.engine,
 	}); err != nil {
 		return nil, err
 	}
 
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, eth.isLocalBlock)
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+	// ##quorum istanbul
+	if chainConfig.QBFT != nil {
+		eth.miner.SetEtherbase(eth.etherbase)
+	}
+	// ##end
 
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
 	if eth.APIBackend.allowUnprotectedTxs {
@@ -499,6 +538,14 @@ func (s *Ethereum) Protocols() []p2p.Protocol {
 	if s.config.SnapshotCache > 0 {
 		protos = append(protos, snap.MakeProtocols((*snapHandler)(s.handler), s.snapDialCandidates)...)
 	}
+
+	// ##quorum istanbul
+	// add additional quorum consensus protocol if set and if not set to "eth", e.g. istanbul
+	if quorumConsensusProtocolName != "" && quorumConsensusProtocolName != eth.ProtocolName {
+		quorumProtos := s.quorumConsensusProtocols((*ethHandler)(s.handler), s.networkID, s.ethDialCandidates)
+		protos = append(protos, quorumProtos...)
+	}
+	// ##END
 	return protos
 }
 

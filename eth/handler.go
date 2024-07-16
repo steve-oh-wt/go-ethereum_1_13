@@ -53,7 +53,16 @@ const (
 	// All transactions with a higher size will be announced and need to be fetched
 	// by the peer.
 	txMaxBroadcastSize = 4096
+
+	// ##quorum istanbul
+	protocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
+	// ##end
 )
+
+// ##quorum istanbul
+var errMsgTooLarge = errors.New("message too long")
+
+// ##end
 
 var syncChallengeTimeout = 15 * time.Second // Time allowance for a node to reply to the sync progress challenge
 
@@ -93,6 +102,9 @@ type handlerConfig struct {
 	BloomCache     uint64                 // Megabytes to alloc for snap sync bloom
 	EventMux       *event.TypeMux         // Legacy event mux, deprecate for `feed`
 	RequiredBlocks map[uint64]common.Hash // Hard coded map of required block hashes for sync challenges
+	// ##quorum istanbul
+	Engine consensus.Engine
+	// ##END
 }
 
 type handler struct {
@@ -128,6 +140,10 @@ type handler struct {
 
 	handlerStartCh chan struct{}
 	handlerDoneCh  chan struct{}
+
+	// ##quorum istanbul
+	engine consensus.Engine
+	// ##END
 }
 
 // newHandler returns a handler for all Ethereum chain management protocol.
@@ -149,7 +165,15 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		quitSync:       make(chan struct{}),
 		handlerDoneCh:  make(chan struct{}),
 		handlerStartCh: make(chan struct{}),
+		engine:         config.Engine,
 	}
+
+	// ##quorum istanbul
+	if handler, ok := h.engine.(consensus.Handler); ok {
+		handler.SetBroadcaster(h)
+	}
+	// ##END
+
 	if config.Sync == downloader.FullSync {
 		// The database seems empty as the current block is the genesis. Yet the snap
 		// block is ahead, so snap sync was enabled for this node at a certain point.
@@ -322,6 +346,13 @@ func (h *handler) decHandlers() {
 	h.handlerDoneCh <- struct{}{}
 }
 
+// ##quorum istanbul
+func (h *handler) Enqueue(id string, block *types.Block) {
+	h.blockFetcher.Enqueue(id, block)
+}
+
+// ##END
+
 // runEthPeer registers an eth peer into the joint eth/snap peerset, adds it to
 // various subsystems and starts handling messages.
 func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
@@ -349,6 +380,11 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	forkID := forkid.NewID(h.chain.Config(), genesis, number, head.Time)
 	if err := peer.Handshake(h.networkID, td, hash, genesis.Hash(), forkID, h.forkFilter); err != nil {
 		peer.Log().Debug("Ethereum handshake failed", "err", err)
+
+		// ##quorum istanbul
+		// When the Handshake() returns an error, the Run method corresponding to `eth` protocol returns with the error, causing the peer to drop, signal subprotocol as well to exit the `Run` method
+		peer.EthPeerDisconnected <- struct{}{}
+		// ##END
 		return err
 	}
 	reject := false // reserved peer slots
@@ -373,6 +409,10 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	// Register the peer locally
 	if err := h.peers.registerPeer(peer, snap); err != nil {
 		peer.Log().Error("Ethereum peer registration failed", "err", err)
+		// ##quorum istanbul
+		// When the Register() returns an error, the Run method corresponding to `eth` protocol returns with the error, causing the peer to drop, signal subprotocol as well to exit the `Run` method
+		peer.EthPeerDisconnected <- struct{}{}
+		// ##END
 		return err
 	}
 	defer h.unregisterPeer(peer.ID())
@@ -444,6 +484,12 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 			}
 		}(number, hash, req)
 	}
+
+	// ##quorum istanbul
+	// Quorum notify other subprotocols that the eth peer is ready, and has been added to the peerset.
+	p.EthPeerRegistered <- struct{}{}
+	// ##END
+
 	// Handle incoming messages until the connection is torn down
 	return handler(peer)
 }
