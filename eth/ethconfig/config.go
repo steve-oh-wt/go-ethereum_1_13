@@ -55,7 +55,6 @@ var Defaults = Config{
 	//SyncMode: downloader.SnapSync,
 	// Quorum - make full sync the default sync mode in quorum (as opposed to upstream geth)
 	SyncMode: downloader.FullSync,
-	// End Quorum
 	// ##END
 
 	NetworkId:          0, // enable auto configuration of networkID == chainID

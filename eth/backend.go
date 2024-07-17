@@ -157,6 +157,16 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if networkID == 0 {
 		networkID = chainConfig.ChainID.Uint64()
 	}
+
+	// ##quorum istanbul
+
+	etherbase := config.Miner.Etherbase
+	if chainConfig.QBFT != nil {
+		// force to set the istanbul etherbase to node key address
+		etherbase = crypto.PubkeyToAddress(stack.Config().NodeKey().PublicKey)
+	}
+	// ##end
+
 	eth := &Ethereum{
 		config:            config,
 		merger:            consensus.NewMerger(chainDb),
@@ -167,32 +177,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		closeBloomHandler: make(chan struct{}),
 		networkID:         networkID,
 		gasPrice:          config.Miner.GasPrice,
-		etherbase:         config.Miner.Etherbase,
+		etherbase:         etherbase,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      core.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		p2pServer:         stack.Server(),
 		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
 	}
-	// ##quorum istanbul
-	// Quorum: Set protocol Name/Version
-	// keep `var protocolName = "eth"` as is, and only update the quorum consensus specific protocol
-	// This is used to enable the eth service to return multiple devp2p subprotocols.
-	// Previously, for istanbul/64 istnbul/99 and clique (v2.6) `protocolName` would be overridden and
-	// set to the consensus subprotocol name instead of "eth", meaning the node would no longer
-	// communicate over the "eth" subprotocol, e.g. "eth" or "istanbul/99" but not eth" and "istanbul/99".
-	// With this change, support is added so that the "eth" subprotocol remains and optionally a consensus subprotocol
-	// can be added allowing the node to communicate over "eth" and an optional consensus subprotocol, e.g. "eth" and "istanbul/100"
-	if chainConfig.QBFT != nil {
-		quorumProtocol := engine.Protocol()
-		// set the quorum specific consensus devp2p subprotocol, eth subprotocol remains set to protocolName as in upstream geth.
-		quorumConsensusProtocolName = quorumProtocol.Name
-		quorumConsensusProtocolVersions = quorumProtocol.Versions
-		quorumConsensusProtocolLengths = quorumProtocol.Lengths
-
-		// force to set the istanbul etherbase to node key address
-		eth.etherbase = crypto.PubkeyToAddress(stack.Config().NodeKey().PublicKey)
-	}
-	// ##END
 
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
 	var dbVer = "<nil>"

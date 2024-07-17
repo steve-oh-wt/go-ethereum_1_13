@@ -282,45 +282,28 @@ func main() {
 	fmt.Println(root)
 
 	const (
-		GENESIS = iota
-		RUN
-		COMMAND
+		GENESIS = "genesis"
+		RUN     = "run"
+		COMMAND = ""
 	)
 
 	var (
-		argsFns = []func() []string{
-			// GENESIS
-			func() []string {
+		argsFns = map[string]func() []string{
+			GENESIS: func() []string {
 				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "init", fmt.Sprintf("%s/genesis.json", root)}
 			},
-			// RUN
-			func() []string {
-				// // etherbase
-				// etherbase := func() string {
-				// 	fd, err := os.Open(fmt.Sprintf("%s/node-%d/data/keystore/etherbase.json", root, node))
-				// 	if err != nil {
-				// 		panic(err)
-				// 	}
-				// 	defer fd.Close()
-				// 	var key map[string]interface{}
-				// 	if err = json.NewDecoder(fd).Decode(&key); err != nil {
-				// 		panic(err)
-				// 	}
-				// 	return key["address"].(string)
-				// }()
-
+			RUN: func() []string {
 				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "--verbosity=5", "--syncmode=full",
-					fmt.Sprintf("--port=3030%d", node), "--nat=none", "--nodiscover", "--mine", /*fmt.Sprintf("--miner.etherbase=%s", etherbase),*/
+					fmt.Sprintf("--port=3030%d", node), "--nat=none", "--nodiscover", "--mine",
 					"--http", "--http.addr=127.0.0.1", fmt.Sprintf("--http.port=2200%d", node), "--http.corsdomain=*", "--http.vhosts=*",
 					"--http.api=admin,eth,debug,miner,net,txpool,personal,web3,istanbul,engine", fmt.Sprintf("--authrpc.port=855%d", node),
-					/*fmt.Sprintf("--unlock=%s", etherbase), fmt.Sprintf("--password=%s", filepath.Join(root, "password.txt")), */ "console"}
+					"console"}
 			},
-			// COMMAND
-			func() []string {
+			COMMAND: func() []string {
 				return os.Args
 			},
 		}
-	) //""
+	)
 
 	funcID := COMMAND
 
@@ -330,9 +313,8 @@ func main() {
 		funcID = RUN // for debug
 	case 1, 2:
 		switch args[0] {
-		case "genesis":
-			funcID = GENESIS
-
+		case GENESIS:
+			funcID = args[0]
 			// After creating the genesis block, copy the static-nodes.json and nodekey files into the geth folder.
 			defer func() {
 				copyFn := func(sourcepath, destpath string) {
@@ -356,17 +338,14 @@ func main() {
 					}
 				}
 
-				// copy etherbase%n.json.json
-				copyFn(fmt.Sprintf("%s/etherbase%v.json", root, node), fmt.Sprintf("%s/node-%d/data/keystore/etherbase.json", root, node))
-
 				// copy static-nodes.json
 				copyFn(fmt.Sprintf("%s/static-nodes.json", root), fmt.Sprintf("%s/node-%d/data/geth/static-nodes.json", root, node))
 
 				// copy nodekey
 				copyFn(fmt.Sprintf("%s/nodekey%d", root, node), fmt.Sprintf("%s/node-%d/data/geth/nodekey", root, node))
 			}()
-		case "run":
-			funcID = RUN
+		case RUN:
+			funcID = args[0]
 		default:
 			goto entry
 		}
