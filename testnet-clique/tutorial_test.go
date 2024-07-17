@@ -143,7 +143,7 @@ func TestSendTransaction(t *testing.T) {
 		}
 		return key.PrivateKey
 	}
-	keyJsonPath := "../alloc.json"
+	keyJsonPath := "./alloc.json"
 	from := crypto.PubkeyToAddress(decryptKey(keyJsonPath).PublicKey)
 	to := common.HexToAddress("0x5883154ea4df20d4fe2a1221e62ca20a15e33fcf")
 

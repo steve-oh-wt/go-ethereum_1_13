@@ -34,4 +34,6 @@ var (
 	errInvalidSigner = errors.New("message not signed by the sender")
 	// errInvalidPreparedBlock is returned when prepared block is not validated in round change messages
 	errInvalidPreparedBlock = errors.New("invalid prepared block in round change messages")
+
+	errCurrentIsNil = errors.New("current is nil")
 )

@@ -383,7 +383,7 @@ func (e *Engine) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 func (e *Engine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	e.Finalize(chain, header, state, txs, uncles)
 	// Assemble and return the final block for sealing
-	return types.NewBlock(header, txs, nil, receipts, new(trie.Trie)), nil
+	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
 }
 
 // Seal generates a new block for the given input block with the local miner's

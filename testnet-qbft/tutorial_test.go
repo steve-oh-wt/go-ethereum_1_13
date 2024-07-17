@@ -120,7 +120,7 @@ func TestMakeGenesis(t *testing.T) {
 }
 
 func TestSendTransaction(t *testing.T) {
-	url := "http://127.0.0.1:22001"
+	url := "http://127.0.0.1:22002"
 	ctx := context.Background()
 	client, err := rpc.DialContext(ctx, url)
 	if err != nil {
@@ -175,7 +175,7 @@ func TestSendTransaction(t *testing.T) {
 		}
 		return key.PrivateKey
 	}
-	keyJsonPath := "../alloc.json"
+	keyJsonPath := "./alloc.json"
 	from := crypto.PubkeyToAddress(decryptKey(keyJsonPath).PublicKey)
 	to := common.HexToAddress("0x5883154ea4df20d4fe2a1221e62ca20a15e33fcf")
 

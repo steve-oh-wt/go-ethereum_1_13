@@ -221,7 +221,6 @@ func CreateConsensusEngine(config *params.ChainConfig, istanbulCfg *istanbul.Con
 		}
 
 		return beacon.New(istanbulBackend.New(istanbulCfg, stack.Config().NodeKey(), db)), nil
-		//return istanbulBackend.New(istanbulCfg, stack.Config().NodeKey(), db), nil
 	}
 	// ##end
 

@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
+	"github.com/ethereum/go-ethereum/consensus/beacon"
 	"github.com/ethereum/go-ethereum/consensus/istanbul"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
@@ -146,7 +147,14 @@ func (h *handler) handleConsensus(p *eth.Peer, protoRW p2p.MsgReadWriter, _ eth.
 }
 
 func (h *handler) handleConsensusMsg(p *eth.Peer, msg p2p.Msg) (bool, error) {
-	if handler, ok := h.engine.(consensus.Handler); ok {
+	var handler consensus.Handler
+	if handler, _ = h.engine.(consensus.Handler); handler == nil {
+		if beacon, ok := h.engine.(*beacon.Beacon); ok {
+			handler, _ = beacon.InnerEngine().(consensus.Handler)
+		}
+	}
+
+	if handler != nil {
 		pubKey := p.Node().Pubkey()
 		addr := crypto.PubkeyToAddress(*pubKey)
 		handled, err := handler.HandleMsg(addr, msg)

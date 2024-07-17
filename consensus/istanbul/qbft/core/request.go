@@ -109,6 +109,10 @@ func (c *core) checkRequestMsg(request *Request) error {
 		return errInvalidMessage
 	}
 
+	if c.current == nil {
+		return errCurrentIsNil
+	}
+
 	if cmp := c.current.sequence.Cmp(request.Proposal.Number()); cmp > 0 {
 		return errOldMessage
 	} else if cmp < 0 {
