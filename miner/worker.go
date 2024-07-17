@@ -380,11 +380,8 @@ func (w *worker) start() {
 	w.running.Store(true)
 
 	// ##quorum istanbul
-	var (
-		qbft *istanbulBackend.Backend
-		ok   bool
-	)
-	if qbft, ok = w.engine.(*istanbulBackend.Backend); !ok {
+	var qbft *istanbulBackend.Backend
+	if qbft, _ = w.engine.(*istanbulBackend.Backend); qbft == nil {
 		if beacon, ok := w.engine.(*beacon.Beacon); ok {
 			qbft, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
 		}
@@ -400,11 +397,8 @@ func (w *worker) start() {
 // stop sets the running status as 0.
 func (w *worker) stop() {
 	// ##quorum istanbul
-	var (
-		qbft *istanbulBackend.Backend
-		ok   bool
-	)
-	if qbft, ok = w.engine.(*istanbulBackend.Backend); !ok {
+	var qbft *istanbulBackend.Backend
+	if qbft, _ = w.engine.(*istanbulBackend.Backend); qbft == nil {
 		if beacon, ok := w.engine.(*beacon.Beacon); ok {
 			qbft, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
 		}
@@ -498,6 +492,18 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			commit(commitInterruptNewHead)
 
 		case head := <-w.chainHeadCh:
+			// ##quorum istanbul
+			var handler consensus.Handler
+			if handler, _ = w.engine.(consensus.Handler); handler == nil {
+				if beacon, ok := w.engine.(*beacon.Beacon); ok {
+					handler, _ = beacon.InnerEngine().(consensus.Handler)
+				}
+			}
+			if handler != nil {
+				handler.NewChainHead()
+			}
+			// ##END
+
 			clearPending(head.Block.NumberU64())
 			timestamp = time.Now().Unix()
 			commit(commitInterruptNewHead)

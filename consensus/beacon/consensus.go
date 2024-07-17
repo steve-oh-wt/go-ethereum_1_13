@@ -361,6 +361,7 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 		beacon.ethone.Finalize(chain, header, state, txs, uncles, nil)
 		return
 	}
+
 	// Withdrawals processing.
 	for _, w := range withdrawals {
 		// Convert amount from gwei to wei.
@@ -377,6 +378,7 @@ func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 	if !beacon.IsPoSHeader(header) {
 		return beacon.ethone.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts, nil)
 	}
+
 	shanghai := chain.Config().IsShanghai(header.Number, header.Time)
 	if shanghai {
 		// All blocks after Shanghai must include a withdrawals root.
@@ -407,6 +409,7 @@ func (beacon *Beacon) Seal(chain consensus.ChainHeaderReader, block *types.Block
 	if !beacon.IsPoSHeader(block.Header()) {
 		return beacon.ethone.Seal(chain, block, results, stop)
 	}
+
 	// The seal verification is done by the external consensus engine,
 	// return directly without pushing any block back. In another word
 	// beacon won't return any result by `results` channel which may
@@ -427,6 +430,7 @@ func (beacon *Beacon) CalcDifficulty(chain consensus.ChainHeaderReader, time uin
 	if reached, _ := IsTTDReached(chain, parent.Hash(), parent.Number.Uint64()); !reached {
 		return beacon.ethone.CalcDifficulty(chain, time, parent)
 	}
+
 	return beaconDifficulty
 }
 
@@ -447,6 +451,7 @@ func (beacon *Beacon) IsPoSHeader(header *types.Header) bool {
 	if header.Difficulty == nil {
 		panic("IsPoSHeader called with invalid difficulty")
 	}
+
 	return header.Difficulty.Cmp(beaconDifficulty) == 0
 }
 
