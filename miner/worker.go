@@ -380,16 +380,15 @@ func (w *worker) start() {
 	w.running.Store(true)
 
 	// ##quorum istanbul
-	var qbft *istanbulBackend.Backend
-	if qbft, _ = w.engine.(*istanbulBackend.Backend); qbft == nil {
+	var backend *istanbulBackend.Backend
+	if backend, _ = w.engine.(*istanbulBackend.Backend); backend == nil {
 		if beacon, ok := w.engine.(*beacon.Beacon); ok {
-			qbft, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
+			backend, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
 		}
 	}
-	if qbft != nil {
-		qbft.Start(w.chain, w.chain.CurrentFullBlock, rawdb.HasBadBlock)
+	if backend != nil {
+		backend.Start(w.chain, w.chain.CurrentFullBlock, rawdb.HasBadBlock)
 	}
-
 	// ##END
 	w.startCh <- struct{}{}
 }
@@ -397,14 +396,14 @@ func (w *worker) start() {
 // stop sets the running status as 0.
 func (w *worker) stop() {
 	// ##quorum istanbul
-	var qbft *istanbulBackend.Backend
-	if qbft, _ = w.engine.(*istanbulBackend.Backend); qbft == nil {
+	var backend *istanbulBackend.Backend
+	if backend, _ = w.engine.(*istanbulBackend.Backend); backend == nil {
 		if beacon, ok := w.engine.(*beacon.Beacon); ok {
-			qbft, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
+			backend, _ = beacon.InnerEngine().(*istanbulBackend.Backend)
 		}
 	}
-	if qbft != nil {
-		qbft.Stop()
+	if backend != nil {
+		backend.Stop()
 	}
 	// ##END
 

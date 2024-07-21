@@ -45,11 +45,6 @@ var (
 	errPayloadReadFailed = errors.New("unable to read payload from message")
 )
 
-// Protocol implements consensus.Engine.Protocol
-func (sb *Backend) Protocol() consensus.Protocol {
-	return consensus.IstanbulProtocol
-}
-
 func (sb *Backend) decode(msg p2p.Msg) ([]byte, common.Hash, error) {
 	var data []byte
 	if msg.Code == istanbulMsg {

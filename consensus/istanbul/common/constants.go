@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	DefaultDifficulty = big.NewInt(1)
+	DefaultDifficulty = big.NewInt(2)
 	NilUncleHash      = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	EmptyBlockNonce   = types.BlockNonce{}
 	NonceAuthVote     = hexutil.MustDecode("0xffffffffffffffff") // Magic nonce number to vote on adding a new validator

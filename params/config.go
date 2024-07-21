@@ -346,6 +346,10 @@ type ChainConfig struct {
 	GrayGlacierBlock    *big.Int `json:"grayGlacierBlock,omitempty"`    // Eip-5133 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	MergeNetsplitBlock  *big.Int `json:"mergeNetsplitBlock,omitempty"`  // Virtual fork after The Merge to use as a network splitter
 
+	// ##wemix legacy
+	QBFTBlock *big.Int `json:"qbftBlock,omitempty"` // QBFTswitch block (nil = no fork, 0 = already on qbft)
+	// ##end
+
 	// Fork scheduling was switched from blocks to timestamps here
 
 	ShanghaiTime *uint64 `json:"shanghaiTime,omitempty"` // Shanghai switch time (nil = no fork, 0 = already on shanghai)
@@ -583,6 +587,14 @@ func (c *ChainConfig) IsPrague(num *big.Int, time uint64) bool {
 func (c *ChainConfig) IsVerkle(num *big.Int, time uint64) bool {
 	return c.IsLondon(num) && isTimestampForked(c.VerkleTime, time)
 }
+
+// ##wemex legacy
+// IsQBFT returns whether num is either equal to the QBFT fork block or greater.
+func (c *ChainConfig) IsQBFT(num *big.Int) bool {
+	return isBlockForked(c.QBFTBlock, num)
+}
+
+// ##end
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.

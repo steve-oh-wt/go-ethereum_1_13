@@ -91,14 +91,6 @@ var (
 	errDanglingUncle   = errors.New("uncle's parent is not ancestor")
 )
 
-// ##quorum istanbul
-// Protocol implements consensus.Engine.Protocol
-func (sb *Ethash) Protocol() consensus.Protocol {
-	return consensus.EthahProtocol
-}
-
-// ##end
-
 // Author implements consensus.Engine, returning the header's coinbase as the
 // proof-of-work verified author of the block.
 func (ethash *Ethash) Author(header *types.Header) (common.Address, error) {

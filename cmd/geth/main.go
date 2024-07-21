@@ -20,7 +20,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
@@ -276,9 +275,33 @@ func init() {
 // 	}
 // }
 
+// test with 4 validators
+// ~/qbft-testnet
+// ├── genesis.json
+// ├── static-nodes.json
+// ├── alloc.json
+// ├── nodekey1
+// ├── nodekey2
+// ├── nodekey3
+// ├── nodekey4
+
+// make genesis block
+// go run . genesis 1
+// go run . genesis 2
+// go run . genesis 3
+// go run . genesis 4
+
+// start 4 nodes
+// go run . run 1
+// go run . run 2
+// go run . run 3
+// go run . run 4
+
+// go run . attach http://127.0.0.1:22001
+
 func main() {
-	node := int64(1)
-	root := filepath.Join(os.Getenv("HOME"), "testnet-qbft")
+	node := 1
+	root := filepath.Join(flags.HomeDir(), "wemix-testnet")
 	fmt.Println(root)
 
 	const (
@@ -293,10 +316,11 @@ func main() {
 				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "init", fmt.Sprintf("%s/genesis.json", root)}
 			},
 			RUN: func() []string {
-				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "--verbosity=5", "--syncmode=full",
-					fmt.Sprintf("--port=3030%d", node), "--nat=none", "--nodiscover", "--mine",
+				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "--verbosity=3", "--syncmode=full",
+					fmt.Sprintf("--port=3030%d", node), /*"--nat=none", "--nodiscover", "--mine",*/
 					"--http", "--http.addr=127.0.0.1", fmt.Sprintf("--http.port=2200%d", node), "--http.corsdomain=*", "--http.vhosts=*",
 					"--http.api=admin,eth,debug,miner,net,txpool,personal,web3,istanbul,engine", fmt.Sprintf("--authrpc.port=855%d", node),
+					"--bootnodes=enode://6137facc7a938d245d3a9b8a8ab2bed33b4d4dbc6f75058e176d54f3f9689ac5b7fad00efbda3eec8a292412d3616e84507adecc12c175eaa5dd7c1374a46fb2@20.41.113.133:8589",
 					"console"}
 			},
 			COMMAND: func() []string {
@@ -304,7 +328,6 @@ func main() {
 			},
 		}
 	)
-
 	funcID := COMMAND
 
 	// run or genesis
@@ -350,8 +373,10 @@ func main() {
 			goto entry
 		}
 		if len(args) == 2 {
-			if d, ok := new(big.Int).SetString(args[1], 0); ok {
-				node = d.Int64()
+			if d, err := strconv.Atoi(args[1]); err != nil {
+				panic(err)
+			} else {
+				node = d
 			}
 		}
 	}

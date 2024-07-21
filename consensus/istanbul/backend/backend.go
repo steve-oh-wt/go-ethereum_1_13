@@ -31,6 +31,7 @@ import (
 	qbftengine "github.com/ethereum/go-ethereum/consensus/istanbul/qbft/engine"
 	qbfttypes "github.com/ethereum/go-ethereum/consensus/istanbul/qbft/types"
 	"github.com/ethereum/go-ethereum/consensus/istanbul/validator"
+	"github.com/ethereum/go-ethereum/consensus/wxhash"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -42,34 +43,6 @@ const (
 	// fetcherID is the ID indicates the block is from Istanbul engine
 	fetcherID = "istanbul"
 )
-
-// New creates an Ethereum backend for Istanbul core engine.
-func New(config *istanbul.Config, privateKey *ecdsa.PrivateKey, db ethdb.Database) *Backend {
-	// Allocate the snapshot caches and create the engine
-	recents := lru.NewCache[common.Hash, *Snapshot](inmemorySnapshots)
-	recentMessages := lru.NewCache[common.Address, *lru.Cache[common.Hash, bool]](inmemoryPeers)
-	knownMessages := lru.NewCache[common.Hash, bool](inmemoryMessages)
-
-	sb := &Backend{
-		config:           config,
-		istanbulEventMux: new(event.TypeMux),
-		privateKey:       privateKey,
-		address:          crypto.PubkeyToAddress(privateKey.PublicKey),
-		logger:           log.New(),
-		db:               db,
-		commitCh:         make(chan *types.Block, 1),
-		recents:          recents,
-		candidates:       make(map[common.Address]bool),
-		coreStarted:      false,
-		recentMessages:   recentMessages,
-		knownMessages:    knownMessages,
-	}
-
-	sb.qbftEngine = qbftengine.NewEngine(sb.config, sb.address, sb.Sign)
-	return sb
-}
-
-// ----------------------------------------------------------------------------
 
 type Backend struct {
 	config *istanbul.Config
@@ -110,6 +83,39 @@ type Backend struct {
 
 	recentMessages *lru.Cache[common.Address, *lru.Cache[common.Hash, bool]] // the cache of peer's messages
 	knownMessages  *lru.Cache[common.Hash, bool]                             // the cache of self messages
+
+	// ##wemix legacy
+	wxhash *wxhash.Wxhash
+	// ##end
+}
+
+// New creates an Ethereum backend for Istanbul core engine.
+func New(config *istanbul.Config, privateKey *ecdsa.PrivateKey, db ethdb.Database) *Backend {
+	// Allocate the snapshot caches and create the engine
+	recents := lru.NewCache[common.Hash, *Snapshot](inmemorySnapshots)
+	recentMessages := lru.NewCache[common.Address, *lru.Cache[common.Hash, bool]](inmemoryPeers)
+	knownMessages := lru.NewCache[common.Hash, bool](inmemoryMessages)
+
+	sb := &Backend{
+		config:           config,
+		istanbulEventMux: new(event.TypeMux),
+		privateKey:       privateKey,
+		address:          crypto.PubkeyToAddress(privateKey.PublicKey),
+		logger:           log.New(),
+		db:               db,
+		commitCh:         make(chan *types.Block, 1),
+		recents:          recents,
+		candidates:       make(map[common.Address]bool),
+		coreStarted:      false,
+		recentMessages:   recentMessages,
+		knownMessages:    knownMessages,
+		// ##wemix legacy
+		wxhash: wxhash.NewFaker(),
+		// ##end
+	}
+
+	sb.qbftEngine = qbftengine.NewEngine(sb.config, sb.address, sb.Sign)
+	return sb
 }
 
 func (sb *Backend) Engine() istanbul.Engine {

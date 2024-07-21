@@ -93,6 +93,13 @@ type Header struct {
 
 	// ParentBeaconRoot was added by EIP-4788 and is ignored in legacy headers.
 	ParentBeaconRoot *common.Hash `json:"parentBeaconBlockRoot" rlp:"optional"`
+
+	// ##wemix legacy
+	Fees         *big.Int `json:"fees" rlp:"optional"`
+	Rewards      []byte   `json:"rewards" rlp:"optional"`
+	MinerNodeId  []byte   `json:"minerNodeId" rlp:"optional"`
+	MinerNodeSig []byte   `json:"minerNodeSig" rlp:"optional"`
+	// ##end
 }
 
 // field type overrides for gencodec
@@ -109,6 +116,59 @@ type headerMarshaling struct {
 	ExcessBlobGas *hexutil.Uint64
 }
 
+// ##wemix legacy
+// HeaderLegacy represents a legacy block header in the Ethereum blockchain.
+type HeaderEthereum struct {
+	ParentHash       common.Hash    `json:"parentHash"       gencodec:"required"`
+	UncleHash        common.Hash    `json:"sha3Uncles"       gencodec:"required"`
+	Coinbase         common.Address `json:"miner"            gencodec:"required"`
+	Root             common.Hash    `json:"stateRoot"        gencodec:"required"`
+	TxHash           common.Hash    `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash      common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+	Bloom            Bloom          `json:"logsBloom"        gencodec:"required"`
+	Difficulty       *big.Int       `json:"difficulty"       gencodec:"required"`
+	Number           *big.Int       `json:"number"           gencodec:"required"`
+	GasLimit         uint64         `json:"gasLimit"         gencodec:"required"`
+	GasUsed          uint64         `json:"gasUsed"          gencodec:"required"`
+	Time             uint64         `json:"timestamp"        gencodec:"required"`
+	Extra            []byte         `json:"extraData"        gencodec:"required"`
+	MixDigest        common.Hash    `json:"mixHash"`
+	Nonce            BlockNonce     `json:"nonce"`
+	BaseFee          *big.Int       `json:"baseFeePerGas" rlp:"optional"`
+	WithdrawalsHash  *common.Hash   `json:"withdrawalsRoot" rlp:"optional"`
+	BlobGasUsed      *uint64        `json:"blobGasUsed" rlp:"optional"`
+	ExcessBlobGas    *uint64        `json:"excessBlobGas" rlp:"optional"`
+	ParentBeaconRoot *common.Hash   `json:"parentBeaconBlockRoot" rlp:"optional"`
+}
+
+func HeaderToHeaderEthereum(h *Header) *HeaderEthereum {
+	return &HeaderEthereum{
+		ParentHash:       h.ParentHash,
+		UncleHash:        h.UncleHash,
+		Coinbase:         h.Coinbase,
+		Root:             h.Root,
+		TxHash:           h.TxHash,
+		ReceiptHash:      h.ReceiptHash,
+		Bloom:            h.Bloom,
+		Difficulty:       h.Difficulty,
+		Number:           h.Number,
+		GasLimit:         h.GasLimit,
+		GasUsed:          h.GasUsed,
+		Time:             h.Time,
+		Extra:            h.Extra,
+		MixDigest:        h.MixDigest,
+		Nonce:            h.Nonce,
+		BaseFee:          h.BaseFee,
+		WithdrawalsHash:  h.WithdrawalsHash,
+		BlobGasUsed:      h.BlobGasUsed,
+		ExcessBlobGas:    h.ExcessBlobGas,
+		ParentBeaconRoot: h.ParentBeaconRoot,
+	}
+
+}
+
+// ##end
+
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
@@ -121,6 +181,12 @@ func (h *Header) Hash() common.Hash {
 		}
 	}
 	// ##END
+
+	// ##wemix lecacy
+	if h.Difficulty.Cmp(common.Big1) != 0 {
+		return rlpHash(HeaderToHeaderEthereum(h))
+	}
+	// ##end
 
 	return rlpHash(h)
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -118,11 +117,6 @@ type Engine interface {
 	// APIs returns the RPC APIs this consensus engine provides.
 	APIs(chain ChainHeaderReader) []rpc.API
 
-	// ##quorum istanbul
-	// Protocol returns the protocol for this consensus
-	Protocol() Protocol
-	// ##end
-
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }
@@ -148,15 +142,24 @@ type Handler interface {
 	SetBroadcaster(Broadcaster)
 }
 
-// Istanbul is a consensus engine to avoid byzantine failure
-type Istanbul interface {
-	Engine
+// Broadcaster defines the interface to enqueue blocks to fetcher and find peer
+type Broadcaster interface {
+	// Enqueue add a block into fetcher queue
+	Enqueue(id string, block *types.Block)
+	// FindPeers retrives peers by addresses
+	FindPeers(map[common.Address]bool) map[common.Address]Peer
+}
 
-	// Start starts the engine
-	Start(chain ChainHeaderReader, currentBlock func() *types.Block, hasBadBlock func(db ethdb.Reader, hash common.Hash) bool) error
+// Peer defines the interface to communicate with peer
+type Peer interface {
+	// Send sends the message to this peer
+	Send(msgcode uint64, data interface{}) error
 
-	// Stop stops the engine
-	Stop() error
+	// SendConsensus sends the message to this p2p peer using the consensus specific devp2p subprotocol
+	SendConsensus(msgcode uint64, data interface{}) error
+
+	// SendQBFTConsensus is used to send consensus subprotocol messages from an "eth" peer without encoding the payload
+	SendQBFTConsensus(msgcode uint64, payload []byte) error
 }
 
 // ##END

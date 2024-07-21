@@ -80,6 +80,34 @@ func (obj *Header) EncodeRLP(_w io.Writer) error {
 			w.WriteBytes(obj.ParentBeaconRoot[:])
 		}
 	}
+
+	// ##wemix legacy
+	_tmp12 := obj.Fees != nil
+	_tmp13 := len(obj.Rewards) > 0
+	_tmp14 := len(obj.MinerNodeId) > 0
+	_tmp15 := len(obj.MinerNodeSig) > 0
+
+	if _tmp12 || _tmp13 || _tmp14 || _tmp15 {
+		if obj.Fees == nil {
+			w.Write(rlp.EmptyString)
+		} else {
+			if obj.Fees.Sign() == -1 {
+				return rlp.ErrNegativeBigInt
+			}
+			w.WriteBigInt(obj.Fees)
+		}
+	}
+	if _tmp13 || _tmp14 || _tmp15 {
+		w.WriteBytes(obj.Rewards)
+	}
+	if _tmp14 || _tmp15 {
+		w.WriteBytes(obj.MinerNodeId)
+	}
+	if _tmp15 {
+		w.WriteBytes(obj.MinerNodeSig)
+	}
+	// ##end
+
 	w.ListEnd(_tmp0)
 	return w.Flush()
 }

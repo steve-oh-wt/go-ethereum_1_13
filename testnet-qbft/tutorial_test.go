@@ -1,15 +1,12 @@
-package test
+package main
 
 import (
-	"context"
-	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,9 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/google/uuid"
 )
 
@@ -88,7 +83,7 @@ func TestMakeKeyJson(t *testing.T) {
 }
 
 func TestMakeGenesis(t *testing.T) {
-	file, err := os.Open("../genesis.json")
+	file, err := os.Open("./genesis.json")
 	if err != nil {
 		t.Error(err)
 	}
@@ -117,108 +112,4 @@ func TestMakeGenesis(t *testing.T) {
 	}
 
 	t.Log(string(b))
-}
-
-func TestSendTransaction(t *testing.T) {
-	url := "http://127.0.0.1:22001"
-	ctx := context.Background()
-	client, err := rpc.DialContext(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ec := ethclient.NewClient(client)
-	fmt.Println("URL", url)
-
-	// chainID
-	chainID, err := ec.ChainID(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("chainID", chainID)
-
-	// from pk
-	fromPK := func(path string, passphrase string) *ecdsa.PrivateKey {
-		keyjson, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		key, err := keystore.DecryptKey(keyjson, passphrase)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return key.PrivateKey
-	}("./alloc.json", "")
-
-	// from
-	from := crypto.PubkeyToAddress(fromPK.PublicKey)
-
-	// nonce
-	nonce, err := ec.NonceAt(ctx, from, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("nonce", nonce)
-
-	// latest header
-	header, err := ec.HeaderByNumber(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println("current block", header.Hash(), header.Number)
-
-	// gasTipCap
-	gasTipCap, err := ec.SuggestGasTipCap(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// gasFeeCap
-	gasFeeCap := new(big.Int).Add(gasTipCap, new(big.Int).Mul(header.BaseFee, common.Big2))
-
-	// gasLimit
-	gasLimit := uint64(21000)
-	fmt.Println("header.BaseFee", header.BaseFee, "gasTipCap", gasTipCap, "gasFeeCap", gasFeeCap, "gasLimit", gasLimit)
-
-	// to
-	to := common.HexToAddress("0x5883154ea4df20d4fe2a1221e62ca20a15e33fcf")
-
-	balanceFn := func(addr common.Address) {
-		balance, err := ec.BalanceAt(ctx, addr, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		fmt.Println("addr", addr, "balance", balance)
-	}
-
-	fmt.Println("balance before transfer")
-	balanceFn(from)
-	balanceFn(to)
-
-	// sign tx with london-signer
-	tx, err := types.SignTx(types.NewTx(&types.DynamicFeeTx{
-		Nonce:     nonce,
-		GasTipCap: gasTipCap,
-		GasFeeCap: gasFeeCap,
-		Gas:       gasLimit,
-		To:        &to,
-		Value:     big.NewInt(0.1e18), // 1 ether
-	}), types.NewLondonSigner(chainID), fromPK)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// send tx
-	if err = ec.SendTransaction(context.Background(), tx); err != nil {
-		t.Fatal(err)
-	}
-
-	// get receipt
-	if recepit, err := bind.WaitMined(ctx, ec, tx); err != nil {
-		t.Fatal(err)
-	} else {
-		fmt.Println("tx", tx.Hash(), "status", recepit.Status)
-		balanceFn(from)
-		balanceFn(to)
-	}
-
 }

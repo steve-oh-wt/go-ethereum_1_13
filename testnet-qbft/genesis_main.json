@@ -1,6 +1,6 @@
 {
     "config": {
-      "chainId": 1337,
+      "chainId": 1111,
       "homesteadBlock": 0,
       "eip150Block": 0,
       "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -12,6 +12,7 @@
       "istanbulBlock":0,
       "berlinBlock":0,
       "londonBlock":0,
+      "qbftBlock":20476900,
       "qbft": {
         "blockReward": "0x0de0b6b3a7640000",
         "epochlength": 30000,
@@ -27,7 +28,7 @@
     "timestamp": "0x5f1663fc",
     "extraData": "0xf85f857374657665f85494415b1312a4adc370eb791fd0db6086d5059b746a948c04752f2b5b3a541b5709a095887ecb2a815f859417afdd710ecd39435efc693c8fadc9b8411b8a23949400e547db5c0ad78e0f166623cfdecab144b6f6c080c0",
     "gasLimit" : "0xf7b760",
-    "difficulty": "0x2",
+    "difficulty": "0x1",
     "mixHash": "0x63746963616c2062797a616e74696e65206661756c7420746f6c6572616e6365",
     "coinbase": "0x0000000000000000000000000000000000000000",
     "alloc": {

@@ -169,7 +169,6 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	}
 
 	// ##quorum istanbul
-
 	var handler consensus.Handler
 	if handler, _ = h.engine.(consensus.Handler); handler == nil {
 		if beacon, ok := h.engine.(*beacon.Beacon); ok {

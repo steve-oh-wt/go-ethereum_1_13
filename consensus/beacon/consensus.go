@@ -70,14 +70,6 @@ func New(ethone consensus.Engine) *Beacon {
 	return &Beacon{ethone: ethone}
 }
 
-// ##quorum istanbul
-// Protocol implements consensus.Engine.Protocol
-func (beacon *Beacon) Protocol() consensus.Protocol {
-	return beacon.ethone.Protocol()
-}
-
-// ##end
-
 // Author implements consensus.Engine, returning the verified author of the block.
 func (beacon *Beacon) Author(header *types.Header) (common.Address, error) {
 	if !beacon.IsPoSHeader(header) {

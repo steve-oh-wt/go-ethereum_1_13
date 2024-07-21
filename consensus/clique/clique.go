@@ -208,14 +208,6 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	}
 }
 
-// ##quorum istanbul
-// Protocol implements consensus.Engine.Protocol
-func (sb *Clique) Protocol() consensus.Protocol {
-	return consensus.CliqueProtocol
-}
-
-// ##end
-
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (c *Clique) Author(header *types.Header) (common.Address, error) {
