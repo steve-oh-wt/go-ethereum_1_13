@@ -317,10 +317,10 @@ func main() {
 			},
 			RUN: func() []string {
 				return []string{"geth", fmt.Sprintf("--datadir=%s/node-%d/data", root, node), "--verbosity=3", "--syncmode=full",
-					fmt.Sprintf("--port=3030%d", node), /*"--nat=none", "--nodiscover", "--mine",*/
+					fmt.Sprintf("--port=3030%d", node) /*"--nat=none", "--nodiscover", */, "--mine",
 					"--http", "--http.addr=127.0.0.1", fmt.Sprintf("--http.port=2200%d", node), "--http.corsdomain=*", "--http.vhosts=*",
 					"--http.api=admin,eth,debug,miner,net,txpool,personal,web3,istanbul,engine", fmt.Sprintf("--authrpc.port=855%d", node),
-					"--bootnodes=enode://6137facc7a938d245d3a9b8a8ab2bed33b4d4dbc6f75058e176d54f3f9689ac5b7fad00efbda3eec8a292412d3616e84507adecc12c175eaa5dd7c1374a46fb2@20.41.113.133:8589",
+					//"--bootnodes=enode://6137facc7a938d245d3a9b8a8ab2bed33b4d4dbc6f75058e176d54f3f9689ac5b7fad00efbda3eec8a292412d3616e84507adecc12c175eaa5dd7c1374a46fb2@20.41.113.133:8589",
 					"console"}
 			},
 			COMMAND: func() []string {
