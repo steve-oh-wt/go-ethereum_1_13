@@ -1,5 +1,8 @@
 {
-    "config": {
+ 
+  "_comment": "QBFT consensus test",
+  
+  "config": {
       "chainId": 1337,
       "homesteadBlock": 0,
       "eip150Block": 0,

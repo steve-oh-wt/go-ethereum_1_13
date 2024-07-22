@@ -20,6 +20,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
@@ -320,7 +321,7 @@ func main() {
 					fmt.Sprintf("--port=3030%d", node) /*"--nat=none", "--nodiscover", */, "--mine",
 					"--http", "--http.addr=127.0.0.1", fmt.Sprintf("--http.port=2200%d", node), "--http.corsdomain=*", "--http.vhosts=*",
 					"--http.api=admin,eth,debug,miner,net,txpool,personal,web3,istanbul,engine", fmt.Sprintf("--authrpc.port=855%d", node),
-					//"--bootnodes=enode://6137facc7a938d245d3a9b8a8ab2bed33b4d4dbc6f75058e176d54f3f9689ac5b7fad00efbda3eec8a292412d3616e84507adecc12c175eaa5dd7c1374a46fb2@20.41.113.133:8589",
+					"--bootnodes=enode://6137facc7a938d245d3a9b8a8ab2bed33b4d4dbc6f75058e176d54f3f9689ac5b7fad00efbda3eec8a292412d3616e84507adecc12c175eaa5dd7c1374a46fb2@20.41.113.133:8589",
 					"console"}
 			},
 			COMMAND: func() []string {
@@ -551,12 +552,27 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		if !ok {
 			utils.Fatalf("Ethereum service not running")
 		}
+
 		// Set the gas price to the limits from the CLI and start mining
 		gasprice := flags.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
 		ethBackend.TxPool().SetGasTip(gasprice)
-		if err := ethBackend.StartMining(); err != nil {
-			utils.Fatalf("Failed to start mining: %v", err)
-		}
+
+		// ##wemix legacy
+		go func() {
+			// wait for QBFTBlock
+			config := backend.ChainConfig()
+			for {
+				header := ethBackend.CurrentBlock()
+				if config.QBFTBlock == nil || config.IsQBFT(new(big.Int).Add(header.Number, common.Big1)) {
+					if err := ethBackend.StartMining(); err != nil {
+						utils.Fatalf("Failed to start mining: %v", err)
+					}
+					return
+				}
+				time.Sleep(1e9)
+			}
+		}()
+		// ##end
 	}
 }
 

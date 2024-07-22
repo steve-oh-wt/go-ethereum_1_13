@@ -1,4 +1,7 @@
 {
+    
+    "_comment": "wemix mainent to fork QBFT",
+    
     "config": {
       "chainId": 1111,
       "homesteadBlock": 0,

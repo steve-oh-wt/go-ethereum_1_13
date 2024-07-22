@@ -408,7 +408,17 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 // ##steve test
 // StaticNodes returns a list of node enode URLs configured as static nodes.
 func (c *Config) StaticNodes() []*enode.Node {
-	return c.parsePersistentNodes(false, c.ResolvePath(datadirStaticNodes))
+	nodes := []*enode.Node{}
+	nodekey := c.NodeKey()
+	// remove same static node with this node
+	for i, n := range c.parsePersistentNodes(false, c.ResolvePath(datadirStaticNodes)) {
+		if nodekey.PublicKey.Equal(n.Pubkey()) {
+			log.Warn("Removed equal static node with nodekey", "index", i, "enode", n)
+			continue
+		}
+		nodes = append(nodes, n)
+	}
+	return nodes
 }
 
 // TrustedNodes returns a list of node enode URLs configured as trusted nodes.
