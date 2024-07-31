@@ -17,7 +17,6 @@
 package backend
 
 import (
-	"fmt"
 	"math/big"
 	"math/rand"
 	"time"
@@ -27,7 +26,6 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/istanbul"
 	istanbulcommon "github.com/ethereum/go-ethereum/consensus/istanbul/common"
 	"github.com/ethereum/go-ethereum/consensus/istanbul/validator"
-	"github.com/ethereum/go-ethereum/consensus/wxhash"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -47,9 +45,6 @@ const (
 // block, which may be different from the header's coinbase if a consensus
 // engine is based on signatures.
 func (sb *Backend) Author(header *types.Header) (common.Address, error) {
-	if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-		sb.wxhash.Author(header)
-	}
 	return sb.Engine().Author(header)
 }
 
@@ -57,9 +52,6 @@ func (sb *Backend) Author(header *types.Header) (common.Address, error) {
 // It will extract for each seal who signed it, regardless of if the seal is
 // repeated
 func (sb *Backend) Signers(header *types.Header) ([]common.Address, error) {
-	if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-		return nil, nil
-	}
 	return sb.Engine().Signers(header)
 }
 
@@ -67,9 +59,6 @@ func (sb *Backend) Signers(header *types.Header) ([]common.Address, error) {
 // given engine. Verifying the seal may be done optionally here, or explicitly
 // via the VerifySeal method.
 func (sb *Backend) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header) error {
-	if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-		return sb.wxhash.VerifyHeader(chain, header)
-	}
 	return sb.verifyHeader(chain, header, nil)
 }
 
@@ -97,11 +86,7 @@ func (sb *Backend) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*t
 			if errored {
 				err = consensus.ErrUnknownAncestor
 			} else {
-				if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-					err = sb.wxhash.VerifyHeader(chain, header)
-				} else {
-					err = sb.verifyHeader(chain, header, headers[:i])
-				}
+				err = sb.verifyHeader(chain, header, headers[:i])
 			}
 
 			if err != nil {
@@ -121,19 +106,12 @@ func (sb *Backend) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*t
 // VerifyUncles verifies that the given block's uncles conform to the consensus
 // rules of a given engine.
 func (sb *Backend) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
-	if block.Difficulty().Cmp(wxhash.WxhashDifficulty) == 0 {
-		return sb.wxhash.VerifyUncles(chain, block)
-	}
 	return sb.Engine().VerifyUncles(chain, block)
 }
 
 // VerifySeal checks whether the crypto seal on a header is valid according to
 // the consensus rules of the given engine.
 func (sb *Backend) VerifySeal(chain consensus.ChainHeaderReader, header *types.Header) error {
-	if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-		return fmt.Errorf("wxhash not support verify seal")
-	}
-
 	// get parent header and ensure the signer is in parent's validator set
 	number := header.Number.Uint64()
 	if number == 0 {
@@ -152,10 +130,6 @@ func (sb *Backend) VerifySeal(chain consensus.ChainHeaderReader, header *types.H
 // Prepare initializes the consensus fields of a block header according to the
 // rules of a particular engine. The changes are executed inline.
 func (sb *Backend) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
-	if !chain.Config().IsQBFT(header.Number) {
-		return fmt.Errorf("perpare before QBFT fork")
-	}
-
 	// Assemble the voting snapshot
 	snap, err := sb.snapshot(chain, header.Number.Uint64()-1, header.ParentHash, nil)
 	if err != nil {
@@ -198,29 +172,18 @@ func (sb *Backend) Prepare(chain consensus.ChainHeaderReader, header *types.Head
 // Note, the block header and state database might be updated to reflect any
 // consensus rules that happen at finalization (e.g. block rewards).
 func (sb *Backend) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
-	if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-		sb.wxhash.Finalize(chain, header, state, txs, uncles, withdrawals)
-		return
-	}
 	sb.Engine().Finalize(chain, header, state, txs, uncles)
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // nor block rewards given, and returns the final block.
 func (sb *Backend) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
-	if header.Difficulty.Cmp(wxhash.WxhashDifficulty) == 0 {
-		return sb.wxhash.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts, withdrawals)
-	}
 	return sb.Engine().FinalizeAndAssemble(chain, header, state, txs, uncles, receipts)
 }
 
 // Seal generates a new block for the given input block with the local miner's
 // seal place on top.
 func (sb *Backend) Seal(chain consensus.ChainHeaderReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
-	if block.Difficulty().Cmp(wxhash.WxhashDifficulty) == 0 {
-		return sb.wxhash.Seal(chain, block, results, stop)
-	}
-
 	// update the block header timestamp and signature and propose the block to core engine
 	header := block.Header()
 	number := header.Number.Uint64()

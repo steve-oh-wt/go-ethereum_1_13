@@ -148,12 +148,8 @@ func (e *Engine) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	}
 
 	// Ensure that the block's difficulty is meaningful (may not be correct at this point)
-	// ##wemix legacy
-	if header.Number.Sign() > 0 {
-		// ##end
-		if header.Difficulty == nil || header.Difficulty.Cmp(istanbulcommon.DefaultDifficulty) != 0 {
-			return istanbulcommon.ErrInvalidDifficulty
-		}
+	if header.Difficulty == nil || header.Difficulty.Cmp(istanbulcommon.DefaultDifficulty) != 0 {
+		return istanbulcommon.ErrInvalidDifficulty
 	}
 
 	return e.verifyCascadingFields(chain, header, validators, parents)
